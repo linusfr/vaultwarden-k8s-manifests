@@ -1,0 +1,131 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: vault-backup-script
+  namespace: vaultwarden
+data:
+  vault-backup.sh: |
+    #!/bin/sh
+
+    set -eou
+
+    echo_info() {
+      echo "📜 $*"
+    }
+
+    echo_warn() {
+      echo "⚠️  $*"
+    }
+
+    STEP=1
+
+    echo_step() {
+      echo -e "\n🛠️ $*"
+    }
+
+    echo_success() {
+      echo "✅ $*"
+    }
+
+    echo_error() {
+      echo "🚨 $*" >&2
+    }
+
+    BACKUP_DIR="/backup"
+    VAULT_DATA_DIR="/data"
+
+    echo_info "currently available backup directories"
+    echo_info "$(ls -lat $BACKUP_DIR)"
+
+    #######
+    # 1. create a directory for the backup
+    #######
+
+    echo_step "creating a backup directory"
+
+    BACKUP_DIR_NAME="$(date -Iseconds)"
+
+    if ! mkdir "${BACKUP_DIR}/${BACKUP_DIR_NAME}"; then
+      echo_error "failed to create the backup directory"
+      exit 1
+    fi
+
+    echo_success "successfully created a backup directory"
+
+    #######
+    # 2. create a backup for the database and move it to the dir
+    #######
+
+    echo_step "creating a database backup"
+
+    if ! sqlite3 "${VAULT_DATA_DIR}/db.sqlite3" ".backup ${BACKUP_DIR}/${BACKUP_DIR_NAME}/backup.sq3"; then
+      echo_error "failed to create the database backup"
+      exit 1
+    fi
+
+    echo_success "successfully created a database backup"
+
+    #######
+    # 3. backup all files needed by moving them to the dir
+    #######
+
+    # config file
+
+    echo_step "backing up the config file"
+
+    if ! cp ${VAULT_DATA_DIR}/config.json ${BACKUP_DIR}/${BACKUP_DIR_NAME}/config.json; then
+      echo_error "failed to backup the config file";
+      exit 1
+    fi
+
+    echo_success "successfully backed up the config file"
+
+    # attachment files
+
+    echo_step "backing up attachment files"
+
+    if ! cp -r ${VAULT_DATA_DIR}/attachments ${BACKUP_DIR}/${BACKUP_DIR_NAME}/; then
+      echo_error "failed to backup attachment files";
+      exit 1
+    fi
+
+    echo_success "successfully backed up the attachment files"
+
+    # send files
+
+    echo_step "backing up send files"
+
+    if ! cp -r ${VAULT_DATA_DIR}/sends ${BACKUP_DIR}/${BACKUP_DIR_NAME}/; then
+      echo_error "failed to backup send files";
+      exit 1
+    fi
+
+    echo_success "successfully backed up the send files"
+
+    # rsa files
+
+    echo_step "backing up rsa files"
+
+    if ! cp -r ${VAULT_DATA_DIR}/rsa* ${BACKUP_DIR}/${BACKUP_DIR_NAME}/; then
+      echo_error "failed to backup rsa files";
+      exit 1
+    fi
+
+    echo_success "successfully backed up the rsa files"
+
+    #######
+    # 4. remove all backups except for 5 of them
+    #######
+
+    echo_step "backing up rsa files"
+
+    cd "$BACKUP_DIR"
+    if ! ls -t | tail -n +6 | xargs -i rm -rf {}; then
+      echo_error "failed to remove old backups";
+      exit 1
+    fi
+
+    echo_success "successfully removed old backups"
+
+    echo_info "newly available backup directories"
+    echo_info "$(ls -lat $BACKUP_DIR)"

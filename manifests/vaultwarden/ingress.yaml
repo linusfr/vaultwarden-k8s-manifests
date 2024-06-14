@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden-ingress
+  namespace: vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" # whatever your issuer is
+spec:
+  tls:
+    - hosts:
+        - <domain>
+      secretName: vaultwarden-tls
+  rules:
+    - host: <domain>
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: vault
+                port:
+                  number: 80

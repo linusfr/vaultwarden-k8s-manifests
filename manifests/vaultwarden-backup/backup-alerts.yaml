@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: vault-backups
+spec:
+  groups:
+  - name: vault-backups
+    rules:
+    - alert: NoBackupPodCreatedForVaultwarden
+      expr: absent(time() - kube_pod_created{pod=~"vault-backup.*",namespace="vaultwarden"} < 25*60*60 )
+      labels:
+        severity: warning
+        application: vaultwarden
+        job_name: vault-backup
+        namespace: vaultwarden
+      annotations:
+        summary: No backup pod has been started for vaultwarden in the last 25 hours. No backup was done.
+
+    - alert: FailedBackupJobsForVaultwarden
+      for: 1m
+      expr: |
+        sum by(namespace)(
+          kube_job_spec_completions{job_name=~"vault-backup.*"} -
+          kube_job_status_succeeded{job_name=~"vault-backup.*"}
+        ) > 0
+      labels:
+        severity: warning
+        application: vaultwarden
+        job_name: vault-backup
+        namespace: vaultwarden
+      annotations:
+        summary: At least one backup job failed for vaultwarden.
+        description: The Job history of vault-backup contains at least one failed job.

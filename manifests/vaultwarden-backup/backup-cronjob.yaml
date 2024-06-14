@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-backup
+  namespace: vaultwarden
+spec:
+  schedule: 0 1 * * *
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+        spec:
+          containers:
+            - name: vault-backup
+              image: keinos/sqlite3
+              args: [/bin/sh, "/scripts/vault-backup.sh"]
+              volumeMounts:
+                - name: vault-data
+                  mountPath: /data
+                - name: backup
+                  mountPath: /backup
+                - name: vault-backup-script
+                  mountPath: /scripts/vault-backup.sh
+                  subPath: vault-backup.sh
+          restartPolicy: Never
+          volumes:
+            - name: vault-data
+              persistentVolumeClaim:
+                claimName: vault
+            - name: backup
+              persistentVolumeClaim:
+                claimName: vault-backups
+            - name: vault-backup-script
+              configMap:
+                name: vault-backup-script
+                defaultMode: 0744

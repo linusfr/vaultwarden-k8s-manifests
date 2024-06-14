@@ -1,0 +1,26 @@
+---
+# https://github.com/dani-garcia/vaultwarden/blob/main/.env.template
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vaultwarden-config-map
+  namespace: vaultwarden
+  labels:
+    app: vaultwarden
+data: 
+  DATA_FOLDER: 'data'
+  DOMAIN: 'https://<domain>'
+  WEB_VAULT_ENABLED: 'true'
+  ROCKET_PORT: '8080'
+  SIGNUPS_ALLOWED: 'false' # set to false to disable signups(register) from any email address
+  SIGNUPS_VERIFY: 'true' # email invitation activation link must be clicked before user can login 
+  SIGNUPS_DOMAINS_WHITELIST: '<comma-separated-domain-list>' # enable signup (register) 
+  ORG_CREATION_USERS: '<comma-separated-email-list>'
+  LOG_FILE: '/var/log/bitwarden.log'
+  USE_SYSLOG: 'true'
+  SHOW_PASSWORD_HINT: 'false' # from hardening guide https://github.com/dani-garcia/bitwarden_rs/wiki/Hardening-Guide-%28WIP%29
+  SMTP_HOST: '<smtp-host>'
+  SMTP_FROM: 'vaultwarden@<domain>'
+  SMTP_PORT: '465'
+  SMTP_SSL: 'true' 
+  SMTP_USERNAME: '<username>'
